@@ -1,59 +1,816 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
+<base target="_top">
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Production Workflow – Sign in</title>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title><?= appTitle ?></title>
 <style>
-  body{margin:0;background:#f2f4f8;font-family:"Segoe UI",Roboto,Arial,sans-serif;color:#1c2333}
-  .card{max-width:420px;margin:12vh auto 0;background:#fff;border:1px solid #dde2ec;border-radius:16px;
-    padding:28px 24px;text-align:center;box-shadow:0 4px 16px rgba(20,30,60,.08)}
-  .tag{font-size:12px;letter-spacing:1.5px;color:#566079;font-weight:700}
-  h1{margin:6px 0 8px;font-size:24px;color:#1f2d4d}
-  p{color:#566079;font-size:15px;margin:0 0 20px}
-  #gBtn{display:flex;justify-content:center;min-height:44px}
-  #msg{margin-top:16px;font-weight:600;font-size:14px;min-height:20px}
-  .err{color:#b3261e}
-  a.open{display:inline-block;margin-top:14px;color:#1a56a8;font-weight:700}
+:root{
+  --navy:#1f2d4d; --navy2:#2c3e66; --gold:#f6b93b;
+  --bg:#f2f4f8; --card:#ffffff; --line:#dde2ec;
+  --text:#1c2333; --muted:#566079;
+  --green:#1e7d3a; --green-bg:#e3f4e8;
+  --blue:#1a56a8; --blue-bg:#e4eefb;
+  --orange:#9a4b00; --orange-bg:#fff0dc;
+  --red:#b3261e; --red-bg:#fde6e4;
+  --gray-bg:#eef0f4;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);
+  font-family:"Segoe UI",Roboto,Arial,sans-serif;font-size:16px;line-height:1.45;
+  -webkit-text-size-adjust:100%}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+.hidden{display:none!important}
+
+/* ---------- Top bar ---------- */
+.top{position:sticky;top:0;z-index:5;background:var(--navy);color:#fff;
+  padding:14px 16px 12px;box-shadow:0 2px 6px rgba(0,0,0,.15)}
+.top-in{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.top-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.brand small{display:block;font-size:12px;letter-spacing:1.5px;color:#c9d0e2;font-weight:600}
+.brand b{font-size:21px}
+.user{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);
+  border:0;color:#fff;border-radius:999px;padding:5px 12px 5px 5px;font-weight:600;font-size:14px}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--gold);color:var(--navy);
+  display:flex;align-items:center;justify-content:center;font-weight:800}
+.tools{display:flex;gap:8px;flex-wrap:wrap}
+.search{flex:1;min-width:200px;height:46px;border:0;border-radius:10px;padding:0 14px;font-size:16px;color:var(--text)}
+.select{height:46px;border:0;border-radius:10px;padding:0 10px;font-size:15px;color:var(--text);min-width:140px}
+.icon-btn{height:46px;min-width:46px;border:0;border-radius:10px;background:rgba(255,255,255,.14);color:#fff;font-size:20px}
+
+/* ---------- Filters ---------- */
+.wrap{max-width:1200px;margin:0 auto;padding:14px 16px 40px}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:6px}
+.chip{flex:none;height:40px;padding:0 14px;border-radius:999px;border:1px solid var(--line);
+  background:#fff;font-size:14px;font-weight:600;color:var(--muted)}
+.chip.on{background:var(--navy);border-color:var(--navy);color:#fff}
+.meta{font-size:13px;color:var(--muted);margin:6px 2px 12px}
+
+/* ---------- Cards ---------- */
+.grid{display:grid;grid-template-columns:1fr;gap:14px}
+@media(min-width:700px){.grid{grid-template-columns:1fr 1fr}}
+@media(min-width:1050px){.grid{grid-template-columns:1fr 1fr 1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-left:6px solid var(--line);
+  border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px;
+  box-shadow:0 1px 3px rgba(20,30,60,.06)}
+.card.s-complete{background:var(--green-bg);border-left-color:var(--green)}
+.card.s-progress{background:var(--blue-bg);border-left-color:var(--blue)}
+.card.s-hold{background:var(--orange-bg);border-left-color:var(--orange)}
+.card.s-overdue{background:var(--red-bg);border-left-color:var(--red)}
+.card.s-unchecked{background:#fff8e6;border-left-color:#c58a00}
+.card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.pr{font-size:19px;font-weight:800;color:var(--navy);word-break:break-word}
+.item{font-size:15px;color:var(--text);margin-top:2px}
+.badge{flex:none;font-size:13px;font-weight:700;padding:5px 10px;border-radius:999px;white-space:nowrap}
+.b-green{background:var(--green);color:#fff}
+.b-red{background:var(--red);color:#fff}
+.b-orange{background:#ffd9a8;color:#6b3400}
+.b-blue{background:#cfe0f8;color:#123e7a}
+.b-gray{background:var(--gray-bg);color:var(--muted)}
+.facts{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:14px}
+.facts span{color:var(--muted);font-size:12px;display:block}
+.facts div{word-break:break-word}
+.wf{background:rgba(255,255,255,.75);border:1px dashed #b8c1d4;border-radius:10px;padding:10px 12px;font-size:14px}
+.wf-title{font-size:12px;font-weight:700;letter-spacing:.8px;color:var(--muted);margin-bottom:4px}
+.wf-line{display:flex;flex-wrap:wrap;gap:6px 14px;font-weight:600}
+.wf-remark{margin-top:4px;color:var(--muted);font-weight:400;
+  overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn{height:46px;border-radius:10px;border:1px solid var(--line);background:#fff;font-size:15px;font-weight:700;color:var(--navy)}
+.btn.primary{background:var(--navy);border-color:var(--navy);color:#fff}
+.btn.gold{background:var(--gold);border-color:var(--gold);color:var(--navy)}
+.empty{text-align:center;color:var(--muted);padding:50px 10px;font-size:16px}
+
+/* ---------- Modal ---------- */
+.overlay{position:fixed;inset:0;background:rgba(15,22,40,.55);z-index:20;
+  display:flex;align-items:flex-end;justify-content:center}
+@media(min-width:700px){.overlay{align-items:center;padding:20px}}
+.modal{background:var(--bg);width:100%;max-width:880px;height:94vh;border-radius:18px 18px 0 0;
+  display:flex;flex-direction:column;overflow:hidden}
+@media(min-width:700px){.modal{height:auto;max-height:92vh;border-radius:16px}}
+.modal.small{max-width:520px}
+.m-head{background:var(--navy);color:#fff;padding:16px 18px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.m-head h2{margin:0;font-size:20px;letter-spacing:.5px}
+.m-head .prno small{display:block;font-size:11px;color:#c9d0e2;font-weight:600;letter-spacing:1px}
+.m-head .prno b{font-size:20px;color:var(--gold)}
+.m-head.gold{background:var(--gold);color:var(--navy)}
+.m-head.gold .sub{font-size:14px;font-weight:600}
+.close{width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.16);color:inherit;font-size:22px;flex:none}
+.m-head.gold .close{background:rgba(31,45,77,.12)}
+.m-body{flex:1 1 auto;min-height:0;overflow-y:auto;padding:14px;display:block;-webkit-overflow-scrolling:touch}
+.m-body > *{margin-bottom:14px}
+.m-body > *:last-child{margin-bottom:0}
+.band{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;
+  display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.band small{display:block;font-size:12px;color:var(--muted);font-weight:700;letter-spacing:.5px}
+.band .ok{color:var(--green);font-size:19px;font-weight:800}
+.band .no{color:var(--red);font-size:19px;font-weight:800}
+.band .date{font-size:17px;font-weight:800;text-align:right}
+.sec{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:visible}
+.sec-h{border-radius:11px 11px 0 0}
+.sec-h{background:var(--navy);color:#fff;font-weight:700;font-size:14px;letter-spacing:.8px;
+  padding:10px 14px;display:flex;justify-content:space-between;align-items:center}
+.sec-h.wf-h{background:#fff2cc;color:#5c4400}
+.sec-h.dl-h{background:#ffe599;color:#5c4400}
+.sec-h.ord-h{background:#d9d2e9;color:#3a2d5c}
+.sec-h.prd-h{background:#b7e1cd;color:#164a33}
+.sec-h.pck-h{background:#fce5cd;color:#6b3a10}
+.sec-h.ord-h .toggle,.sec-h.prd-h .toggle,.sec-h.pck-h .toggle{color:inherit}
+.sec-h.bh-h{background:#5b3a99}
+.bh-box{border:2px solid #5b3a99;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:12px;background:#f5f0ff}
+.bh-title{font-size:13px;font-weight:800;color:#5b3a99;letter-spacing:.5px}
+.qa{display:grid;grid-template-columns:1fr}
+@media(min-width:700px){.qa{grid-template-columns:1fr 1fr}}
+/* Question on top, full answer below – nothing is ever cut */
+.qa-row{display:flex;flex-direction:column;gap:3px;padding:10px 14px;border-bottom:1px solid var(--line);min-width:0}
+@media(min-width:700px){.qa-row:nth-child(odd){border-right:1px solid var(--line)}}
+.qa-q{font-size:13px;font-weight:700;color:#4a5570;text-transform:none}
+.qa-a{font-size:16px;color:var(--text);overflow-wrap:anywhere;white-space:pre-wrap;line-height:1.45}
+.qa-a.blank{color:#9aa3b5}
+.lnk{display:inline-flex;align-items:center;gap:4px;min-height:36px;padding:6px 12px;border-radius:8px;
+  background:var(--blue-bg);color:var(--blue);font-weight:700;text-decoration:none;overflow-wrap:anywhere}
+.lnk:hover{background:#d3e2f8}
+.toggle{font-size:13px;font-weight:600;color:#d7dceb;display:flex;align-items:center;gap:6px}
+.toggle input{width:18px;height:18px}
+.m-foot{display:flex;gap:8px;padding:12px 14px;background:#fff;border-top:1px solid var(--line)}
+.m-foot .btn{flex:1}
+
+/* ---------- Workflow form ---------- */
+.form{display:flex;flex-direction:column;gap:14px}
+.form > *{flex-shrink:0}
+.checkline{display:flex;align-items:center;gap:12px;background:var(--blue-bg);border-radius:12px;
+  padding:14px;font-weight:700;font-size:16px;color:#123e7a}
+.checkline input{width:26px;height:26px;margin:0;flex:none}
+.flabel{font-size:14px;font-weight:700;color:#3b4560;margin-bottom:6px;display:block}
+.pills{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pill{height:48px;border-radius:10px;border:2px solid transparent;font-size:15px;font-weight:700}
+.pill,.st{background:#fff4c2;color:#6b5200}                                  /* in-between = yellow */
+.pill[data-v="On Hold"],.st[data-v="On Hold"]{background:#fde2e0;color:#a3231a}        /* red (light) */
+.pill[data-v="Rework Required"],.st[data-v="Rework Required"]{background:#f9c9c4;color:#8a1810}
+.pill[data-v="Pending Clarification"],.st[data-v="Pending Clarification"]{background:#eef0f4;color:#3b4560} /* neutral */
+.pill[data-v="Complete"],.st[data-v="Complete"]{background:#d6f2de;color:#1e7d3a}       /* green */
+.st[data-v="Cancelled"]{background:#5c0a0a;color:#fff}
+.st{display:inline-block;padding:3px 10px;border-radius:999px;font-weight:700}
+.card.s-cancelled{background:#3d0606;border-left-color:#1a0000;color:#f3d6d6}
+.card.s-cancelled .pr,.card.s-cancelled .item,.card.s-cancelled .facts div{text-decoration:line-through;color:#f3d6d6}
+.card.s-cancelled .facts span{color:#d9a5a5}
+.card.s-cancelled .wf{background:rgba(255,255,255,.08);border-color:#7a2a2a}
+.att{display:inline-block;margin-top:2px;color:var(--blue);font-weight:700;text-decoration:none}
+.card.s-cancelled .att{color:#ffb3b3}
+.dates{display:flex;gap:6px;align-items:center;flex-wrap:wrap;color:#fff;font-size:13px;font-weight:600}
+.dates input{height:40px;border:0;border-radius:8px;padding:0 8px;color:var(--text)}
+.dates button{height:40px;border:0;border-radius:8px;padding:0 10px;background:rgba(255,255,255,.14);color:#fff}
+.newpr{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:45;background:#1e7d3a;color:#fff;
+  padding:12px 18px;border-radius:12px;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.3);cursor:pointer}
+.btn.wa{background:#25d366;border-color:#25d366;color:#fff}
+.pill.on{border-color:var(--navy);box-shadow:0 2px 6px rgba(0,0,0,.18)}
+.field{width:100%;border:1px solid #c6cedd;border-radius:10px;padding:12px;font-size:16px;background:#fff}
+textarea.field{min-height:96px;resize:vertical}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.hint{font-size:13px;color:var(--muted)}
+.info{font-size:14px;color:var(--muted);background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+
+/* ---------- Login ---------- */
+.login{max-width:420px;margin:12vh auto 0;padding:0 18px}
+.login-card{background:#fff;border-radius:16px;padding:24px;border:1px solid var(--line);
+  display:flex;flex-direction:column;gap:14px;box-shadow:0 4px 16px rgba(20,30,60,.08)}
+.login h1{margin:0;font-size:24px;color:var(--navy)}
+.err{color:var(--red);font-weight:600;font-size:14px;min-height:20px}
+
+/* ---------- Toast & loader ---------- */
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:40;
+  background:var(--navy);color:#fff;padding:12px 18px;border-radius:10px;font-weight:600;
+  font-size:15px;max-width:90vw;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+.toast.bad{background:var(--red)}
+.loader{text-align:center;padding:50px;color:var(--muted)}
+.spin{width:34px;height:34px;border:4px solid #d4dae6;border-top-color:var(--navy);border-radius:50%;
+  margin:0 auto 12px;animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* ---------- Print = PDF of the PR details ---------- */
+@media print{
+  body{background:#fff}
+  .top,.wrap,.m-foot,.close,.toggle,#wfModal,.toast{display:none!important}
+  .overlay{position:static;background:none;display:block;padding:0}
+  .modal{height:auto;max-height:none;border-radius:0;max-width:none}
+  .m-body{overflow:visible}
+  .sec{break-inside:avoid}
+  .qa{grid-template-columns:1fr 1fr}
+  .m-head,.sec-h{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
 </style>
 </head>
 <body>
-<div class="card">
-  <div class="tag">AVON · EUME</div>
-  <h1>Production Workflow</h1>
-  <p>Sign in with your company Google account.<br>This device will stay logged in.</p>
-  <div id="gBtn"></div>
-  <div id="msg"></div>
+
+<!-- NO ACCESS -->
+<div id="loginView" class="login hidden">
+  <div class="login-card">
+    <h1>Production Workflow</h1>
+    <div class="hint">Log in once with your company email. This device will stay logged in.</div>
+
+    <div id="stepEmail">
+      <label class="flabel" for="lgEmail">Your company email</label>
+      <input id="lgEmail" class="field" type="email" autocomplete="email" inputmode="email"
+             placeholder="name@avongroup.in" onkeydown="if(event.key==='Enter')sendCode()">
+      <button class="btn primary" id="btnSend" style="width:100%;margin-top:12px" onclick="sendCode()">Send login code</button>
+    </div>
+
+    <div id="stepCode" class="hidden">
+      <div class="info" id="codeInfo"></div>
+      <label class="flabel" for="lgCode" style="margin-top:12px">6-digit code</label>
+      <input id="lgCode" class="field" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code"
+             placeholder="123456" style="font-size:22px;letter-spacing:6px;text-align:center"
+             onkeydown="if(event.key==='Enter')verifyCode()">
+      <button class="btn primary" id="btnVerify" style="width:100%;margin-top:12px" onclick="verifyCode()">Log in</button>
+      <button class="btn" style="width:100%;margin-top:8px" onclick="backToEmail()">Use another email</button>
+    </div>
+
+    <div class="err" id="lgErr"></div>
+    <div class="hint" id="noAccessMsg"></div>
+  </div>
 </div>
 
+<!-- APP -->
+<div id="appView" class="hidden">
+  <header class="top">
+    <div class="top-in">
+      <div class="top-row">
+        <div class="brand"><small>AVON · EUME</small><b>Production</b></div>
+        <button class="user" onclick="logout()" title="Log out / switch account" aria-label="Log out">
+          <span class="avatar" id="uAvatar"></span><span id="uName"></span><span style="opacity:.7;font-size:12px">&nbsp;Log out</span>
+        </button>
+      </div>
+      <div class="tools">
+        <input id="search" class="search" type="search" placeholder="Search PR, item, SKU, brand" oninput="render()" aria-label="Search">
+        <select id="person" class="select hidden" onchange="loadList()" aria-label="Production person"></select>
+        <button class="icon-btn" onclick="loadList()" aria-label="Refresh" title="Refresh">&#x21bb;</button>
+      </div>
+      <div class="dates">Added date
+        <input type="date" id="dFrom" onchange="render()" aria-label="Added from"> to
+        <input type="date" id="dTo" onchange="render()" aria-label="Added to">
+        <button onclick="$('dFrom').value='';$('dTo').value='';render()">Clear</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="chips" id="chips"></div>
+    <div class="meta" id="meta"></div>
+    <div id="list"></div>
+  </main>
+</div>
+
+<!-- DETAILS MODAL -->
+<div id="dtModal" class="overlay hidden" onclick="if(event.target===this)closeModal('dtModal')">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="PR Details">
+    <div class="m-head">
+      <h2>PRODUCTION STATUS</h2>
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="prno" style="text-align:right"><small>PR NUMBER</small><b id="dtPr"></b></div>
+        <button class="close" onclick="closeModal('dtModal')" aria-label="Close">&times;</button>
+      </div>
+    </div>
+    <div class="m-body" id="dtBody"></div>
+    <div class="m-foot">
+      <button class="btn" onclick="window.print()">Print / Save PDF</button>
+      <button class="btn gold" onclick="openWorkflow(current)">Production Workflow</button>
+    </div>
+  </div>
+</div>
+
+<!-- WORKFLOW MODAL -->
+<div id="wfModal" class="overlay hidden" onclick="if(event.target===this)closeModal('wfModal')">
+  <div class="modal small" role="dialog" aria-modal="true" aria-label="Production Workflow">
+    <div class="m-head gold">
+      <div><h2>Production Workflow</h2><div class="sub" id="wfSub"></div></div>
+      <button class="close" onclick="closeModal('wfModal')" aria-label="Close">&times;</button>
+    </div>
+    <div class="m-body"><div class="form" id="wfBody"></div></div>
+    <div class="m-foot">
+      <button class="btn" onclick="closeModal('wfModal')">Cancel</button>
+      <button class="btn wa hidden" id="wfWa" onclick="saveWorkflow(true)">WhatsApp CRM &amp; Save</button>
+      <button class="btn primary" id="wfSave" onclick="saveWorkflow()">Save Update</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+<div id="newPr" class="newpr hidden" onclick="this.classList.add('hidden')"></div>
+
 <script>
-/* ===================== EDIT THESE TWO LINES ===================== */
-const APP_URL   = 'https://script.google.com/macros/s/AKfycbzOMr6DBPuQ_-AxRZ76c430IiwACeVxU0yiAq2KP77fjlenglmF17DaM7G-W30biJ-0/exec';
-const CLIENT_ID = '407495392214-3r5jrslcv3hh1l6002pa98s7c5cl8p2h.apps.googleusercontent.com';
-/* ================================================================ */
+const STATUSES = ['On Hold','Pending Clarification','Pre Production Sample Made', 'Production in Progress',
+ 'Partially Produced', 'Quality Check Pending',  'Rework Required','Complete'];
+let session = null, items = [], filter = 'ALL', current = null, wfOriginal = null, wfStatus = '';
 
 const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s)
+  .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
-// Hand Google's sign-in proof to the Apps Script app (it checks the email against USERS)
-function onGoogleCredential(resp){
-  $('msg').textContent = 'Opening the Production app…';
-  window.location.href = APP_URL + '?old=1&g=' + encodeURIComponent(resp.credential);
-}
-
-function init(){
-  if (!window.google || !google.accounts || !google.accounts.id) { setTimeout(init, 300); return; }
-  google.accounts.id.initialize({
-    client_id: CLIENT_ID,
-    callback: onGoogleCredential,
-    auto_select: false,
-    cancel_on_tap_outside: true
-  });
-  google.accounts.id.renderButton($('gBtn'), {
-    theme: 'filled_blue', size: 'large', shape: 'pill', text: 'signin_with', width: 280
+/* ---------- server calls ---------- */
+function call(fn, ...args){
+  return new Promise((resolve, reject) => {
+    google.script.run
+      .withSuccessHandler(resolve)
+      .withFailureHandler(err => {
+        if (String(err.message).indexOf('LINK_INVALID') > -1) { showNoAccess(); }
+        reject(err);
+      })[fn](...args);
   });
 }
-init();
+
+function toast(msg, bad){
+  const t = $('toast');
+  t.textContent = msg; t.className = 'toast' + (bad ? ' bad' : '');
+  clearTimeout(t._h); t._h = setTimeout(() => t.classList.add('hidden'), 3500);
+}
+
+/* ---------- open from link (no sign-in) ---------- */
+const BOOT = <?!= bootJson ?>;
+
+/* The personal link code is remembered on this phone/laptop after the first open,
+   so the plain app link (without ?p=) also works next time. */
+function savedCode(){ try{ return localStorage.getItem('pwLink') || ''; }catch(e){ return ''; } }
+function saveCode(c){ try{ if (c) localStorage.setItem('pwLink', c); else localStorage.removeItem('pwLink'); }catch(e){} }
+
+async function start(){
+  $('appView').classList.add('hidden');
+  const saved = savedCode();
+  try{
+    // order on the server: ?p= link  ->  Google email  ->  remembered code
+    const r = await call('apiStart', BOOT.p, saved, BOOT.t, BOOT.g);
+    if (r && r.ok){ session = r; saveCode(r.token); showApp(); return; }
+    if (saved) saveCode('');   // remembered login no longer valid
+    if (r && r.notAllowed){ showNoAccess(r.notAllowed + ' is not allowed. Sign in with your company account.'); return; }
+    if (r && r.message){ showNoAccess(r.message); return; }
+    showNoAccess(BOOT.t ? 'Sign-in expired. Please sign in again.' : '');
+    return;
+  }catch(e){}
+  showNoAccess();
+}
+
+function showNoAccess(msg){
+  $('appView').classList.add('hidden');
+  $('loginView').classList.remove('hidden');
+  backToEmail();
+  $('lgErr').textContent = msg || '';
+  if (!msg && BOOT.p) $('noAccessMsg').textContent = 'That personal link is not valid. Please log in with your email.';
+}
+
+let loginEmail = '';
+async function sendCode(){
+  const email = $('lgEmail').value.trim().toLowerCase();
+  $('lgErr').textContent = '';
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { $('lgErr').textContent = 'Please enter a valid email.'; return; }
+  const b = $('btnSend'); b.disabled = true; b.textContent = 'Sending…';
+  try{
+    const r = await call('apiSendCode', email);
+    loginEmail = email;
+    $('codeInfo').innerHTML = 'Code sent to <b>' + esc(email) + '</b>. Check inbox and spam. Valid ' + r.minutes + ' minutes.';
+    $('stepEmail').classList.add('hidden'); $('stepCode').classList.remove('hidden');
+    $('lgCode').value = ''; $('lgCode').focus();
+  }catch(e){ $('lgErr').textContent = e.message; }
+  b.disabled = false; b.textContent = 'Send login code';
+}
+
+async function verifyCode(){
+  const code = $('lgCode').value.trim();
+  $('lgErr').textContent = '';
+  if (!/^\d{6}$/.test(code)) { $('lgErr').textContent = 'Enter the 6-digit code.'; return; }
+  const b = $('btnVerify'); b.disabled = true; b.textContent = 'Checking…';
+  try{
+    const r = await call('apiVerifyCode', loginEmail, code);
+    if (r && r.ok){ session = r; saveCode(r.token); showApp(); }
+    else $('lgErr').textContent = 'Could not log in.';
+  }catch(e){ $('lgErr').textContent = e.message; }
+  b.disabled = false; b.textContent = 'Log in';
+}
+
+function backToEmail(){
+  $('stepCode').classList.add('hidden'); $('stepEmail').classList.remove('hidden');
+  $('lgErr').textContent = '';
+}
+
+function logout(){
+  if (!confirm('Log out from this device?')) return;
+  saveCode(''); session = null; items = [];
+  if (BOOT.loginPage) { window.top.location.href = BOOT.loginPage; return; }
+  $('noAccessMsg').textContent = '';
+  $('person').classList.add('hidden');
+  showNoAccess();
+}
+
+function showApp(){
+  $('loginView').classList.add('hidden'); $('appView').classList.remove('hidden');
+  if (!session.version) setTimeout(() => toast('⚠ Server code is OLD. In Apps Script: Deploy → Manage deployments → ✏️ → New version → Deploy.', true), 800);
+  $('uName').textContent = session.name;
+  $('uAvatar').textContent = (session.name || '?').charAt(0).toUpperCase();
+  const sel = $('person');
+  if (session.role === 'admin'){
+    sel.innerHTML = '<option value="ALL">Everyone</option>' +
+      session.persons.map(p => '<option>' + esc(p) + '</option>').join('');
+    sel.classList.remove('hidden');
+  }
+  loadList();
+}
+
+/* ---------- list ---------- */
+async function loadList(){
+  $('list').innerHTML = '<div class="loader"><div class="spin"></div>Loading your PRs…</div>';
+  try{
+    const r = await call('apiList', session.token, $('person').value || 'ALL');
+    items = r.items;
+    $('meta').dataset.updated = r.updated;
+    render();
+    checkNewPrs();
+    if (r.warnings && r.warnings.length) toast('⚠ ' + r.warnings.join(' | '), true);
+  }catch(e){
+    $('list').innerHTML = '<div class="empty">Could not load PRs.<br>' + esc(e.message) + '</div>';
+  }
+}
+
+/* ---------- "new PR added" popup ---------- */
+const keyOf = it => it.ref.u + '|' + it.ref.sid + '|' + it.ref.child;
+function checkNewPrs(){
+  const store = 'pwSeen_' + session.name;
+  let seen = null;
+  try { seen = JSON.parse(localStorage.getItem(store) || 'null'); } catch(e){}
+  const now = items.map(keyOf);
+  if (seen && ($('person').value || 'ALL') === 'ALL') {
+    const old = new Set(seen);
+    const added = items.filter(it => !old.has(keyOf(it)));
+    if (added.length) {
+      const b = $('newPr');
+      b.textContent = '🆕 ' + added.length + ' new PR' + (added.length > 1 ? 's' : '') + ' added: ' +
+        added.slice(0, 3).map(x => x.pr).join(', ') + (added.length > 3 ? '…' : '');
+      b.classList.remove('hidden');
+      clearTimeout(b._h); b._h = setTimeout(() => b.classList.add('hidden'), 10000);
+    }
+  }
+  if (($('person').value || 'ALL') === 'ALL') {
+    try { localStorage.setItem(store, JSON.stringify(now)); } catch(e){}
+  }
+}
+// check for new PRs every 5 minutes while the page is open
+setInterval(() => {
+  if (session && document.visibilityState === 'visible' &&
+      $('dtModal').classList.contains('hidden') && $('wfModal').classList.contains('hidden')) loadList();
+}, 5 * 60 * 1000);
+
+function daysNum(d){ const n = Number(d); return d !== '' && !isNaN(n) ? n : null; }
+function isComplete(it){ return String(it.days).toLowerCase() === 'complete' || it.status === 'Complete'; }
+
+function cardClass(it){
+  if (it.cancelled) return 's-cancelled';
+  if (isComplete(it)) return 's-complete';
+  const n = daysNum(it.days);
+  if (n !== null && n < 0) return 's-overdue';
+  if (!it.checked) return 's-unchecked';
+  if (it.status === 'On Hold') return 's-hold';
+  if (it.status === 'Production in Progress') return 's-progress';
+  return '';
+}
+
+function daysBadge(d){
+  if (String(d).toLowerCase() === 'complete') return '<span class="badge b-green">Complete</span>';
+  const n = daysNum(d);
+  if (n === null) return d ? '<span class="badge b-gray">' + esc(d) + '</span>' : '';
+  if (n < 0) return '<span class="badge b-red">Overdue ' + Math.abs(n) + 'd</span>';
+  if (n <= 5) return '<span class="badge b-orange">' + n + ' days left</span>';
+  return '<span class="badge b-blue">' + n + ' days left</span>';
+}
+
+const FILTERS = [
+  ['ALL','All', () => true],
+  ['INCOMPLETE','Incomplete', it => !isComplete(it)],
+  ['UNCHECKED','Not checked', it => !it.checked && !isComplete(it)],
+  ['OVERDUE','Overdue', it => !isComplete(it) && daysNum(it.days) !== null && daysNum(it.days) < 0],
+  ['PROGRESS','In progress', it => it.status === 'Production in Progress'],
+  ['HOLD','On hold', it => it.status === 'On Hold'],
+  ['DONE','Complete', it => isComplete(it)],
+  ['CANCELLED','Cancelled', it => it.cancelled]
+];
+
+
+function setFilter(f){ filter = f; render(); }
+
+function render(){
+  const q = $('search').value.trim().toLowerCase();
+  const searched = items.filter(it => !q ||
+    [it.pr, it.item, it.sku, it.category, it.company, it.brand, it.person].join(' ').toLowerCase().includes(q))
+    .filter(it => {
+      const f = $('dFrom').value, t = $('dTo').value;
+      if (!f && !t) return true;
+      if (!it.added) return false;
+      return (!f || it.added >= f) && (!t || it.added <= t);
+    });
+
+  $('chips').innerHTML = FILTERS.map(([k, label, fn]) =>
+    '<button class="chip' + (filter === k ? ' on' : '') + '" onclick="setFilter(\'' + k + '\')">' +
+    label + ' ' + searched.filter(fn).length + '</button>').join('');
+
+  const fn = FILTERS.find(f => f[0] === filter)[2];
+  const list = searched.filter(fn);
+  $('meta').textContent = list.length + ' PR item' + (list.length === 1 ? '' : 's') +
+    ' · updated ' + ($('meta').dataset.updated || '') + ' · ' + (session.version ? 'v' + session.version : 'OLD SERVER');
+
+  if (!list.length){ $('list').innerHTML = '<div class="empty">No PRs here.</div>'; return; }
+
+  $('list').innerHTML = '<div class="grid">' + list.map((it, i) => {
+    const idx = items.indexOf(it);
+    return '<article class="card ' + cardClass(it) + '">' +
+      '<div class="card-head"><div><div class="pr">' + esc(it.pr) + '</div>' +
+      '<div class="item">' + esc(it.item) + '</div></div>' +
+      (it.cancelled ? '<span class="badge" style="background:#1a0000;color:#fff">CANCELLED</span>' : daysBadge(it.days)) + '</div>' +
+      '<div class="facts">' +
+        fact('Category', it.category) + fact('SKU', it.sku) +
+        fact('Qty', it.qty) + fact('Brand', it.brand) +
+        fact('Expected dispatch', it.expected) + fact('Revised dispatch', it.revised) +
+        (session.role === 'admin' ? fact('Production person', it.person) : '') +
+        fact('Added', it.added ? it.added.split('-').reverse().join('/') : '') +
+      '</div>' +
+      ((it.attachments || []).length ? '<div>' + it.attachments.map((u, n) =>
+        '<a class="att" href="' + esc(u) + '" target="_blank" rel="noopener">📎 Artwork' +
+        (it.attachments.length > 1 ? ' ' + (n + 1) : '') + ' &#8599;</a>').join(' &nbsp; ') + '</div>' : '') +
+      '<div class="wf"><div class="wf-title">PRODUCTION WORKFLOW</div>' +
+        '<div class="wf-line"><span>' + (it.checked ? '&#10003; Checked' : '&#9675; Not checked') + '</span>' +
+        '<span class="st" data-v="' + esc(it.cancelled ? 'Cancelled' : it.status) + '">' + esc(it.cancelled ? 'Cancelled' : (it.status || 'No status')) + '</span></div>' +
+        (it.remark ? '<div class="wf-remark">' + esc(it.remark) + '</div>' : '') +
+      '</div>' +
+      '<div class="actions">' +
+        '<button class="btn" onclick="openDetails(' + idx + ')">Details</button>' +
+        (it.cancelled ? '<button class="btn" disabled style="opacity:.5">Cancelled</button>'
+          : '<button class="btn gold" onclick="openWorkflowIdx(' + idx + ')">Workflow</button>') +
+      '</div></article>';
+  }).join('') + '</div>';
+}
+
+function fact(label, v){ return v ? '<div><span>' + label + '</span>' + esc(v) + '</div>' : ''; }
+
+/* ---------- details ---------- */
+async function openDetails(idx){
+  const it = items[idx];
+  $('dtPr').textContent = it.pr;
+  $('dtBody').innerHTML = '<div class="loader"><div class="spin"></div>Loading details…</div>';
+  openModal('dtModal');
+  try{
+    current = await call('apiDetails', session.token, it.ref);
+    renderDetails();
+  }catch(e){ $('dtBody').innerHTML = '<div class="empty">' + esc(e.message) + '</div>'; }
+}
+
+let hideEmpty = false;
+function renderDetails(){
+  const d = current, w = d.workflow;
+  const ap = String(d.approved || '').trim();
+  let h = '<div class="band"><div><small>PRODUCTION STATUS</small>' +
+    (ap.toLowerCase() === 'yes' ? '<div class="ok">YES — Approved</div>' : '<div class="no">' + esc(ap || 'Pending') + '</div>') +
+    '</div><div><small style="text-align:right">STATUS DATE</small><div class="date">' + esc(d.statusDate || '—') + '</div></div></div>';
+
+  h += '<div class="sec"><div class="sec-h wf-h"><span>PRODUCTION WORKFLOW</span></div><div class="qa">' +
+    (d.has.check ? qa('Production Check', w.checked ? '✓ Checked' : 'Not checked') : '') +
+    (d.has.status ? qa('Production Status', w.status) : '') +
+    (d.has.remark ? qa('Remark', w.remark) : '') +
+    (d.has.revised ? qa('Revised Dispatch Date', w.revisedText) : '') +
+    (w.completion ? qa('Completion Time', w.completion) : '') +
+    (d.has.qtySent ? qa('Qty Sent For Production', w.qtySent) : '') +
+    (d.has.revisedQty ? qa('Revised Qty', w.revisedQty) : '') +
+    (d.has.qtyPrepared ? qa('Qty Prepared', w.qtyPrepared) : '') +
+    (d.has.tentative ? qa('Tentative Cost', w.tentative) : '') +
+    (d.has.finalCost ? qa('Final Cost', w.finalCost) : '') +
+    '</div></div>';
+
+  if (d.bhimsen) {
+    h += '<div class="sec"><div class="sec-h bh-h"><span>BHIMSEN CHECK </span></div><div class="qa">' +
+      qa('Bhimsen Checked', d.bhimsen.checked ? '✓ Checked' : 'Not checked') +
+      qa('Bhimsen Remark', d.bhimsen.remark) +
+      (d.bhimsen.error ? qa('Note', d.bhimsen.error) : '') +
+      '</div></div>';
+  }
+  const SEC_CLASS = { 'Order Details': 'ord-h', 'Production Details': 'prd-h', 'Packing Details': 'pck-h' };
+
+  d.sections.forEach((s, i) => {
+    const rows = s.rows.filter(r =>
+  !hideEmpty || String(r[1] == null ? '' : r[1]).trim() !== '' || r[2]
+);
+    if (!rows.length) return;
+    h += '<div class="sec"><div class="sec-h ' + (SEC_CLASS[s.title] || '') + '"><span>' + esc(s.title.toUpperCase()) + '</span>' +
+      (i === 0 ? '<label class="toggle"><input type="checkbox" ' + (hideEmpty ? 'checked' : '') +
+        ' onchange="hideEmpty=this.checked;renderDetails()"> Hide empty</label>' : '') +
+      '</div><div class="qa">' + rows.map(r => qa(r[0], r[1], r[2])).join('') + '</div></div>';
+  });
+
+  // Delivery details come last (after Packing)
+  if (d.delivery) {
+    h += '<div class="sec"><div class="sec-h dl-h"><span>DELIVERY DETAILS</span></div><div class="qa">' +
+      (d.delivery.rows.length ? d.delivery.rows.map(r => qa(r[0], r[1])).join('')
+                              : qa('Delivery', d.delivery.note || 'No delivery details')) +
+      '</div></div>';
+  }
+
+  $('dtBody').innerHTML = h;
+}
+
+function qa(q, a, url){
+  const text = String(a == null ? '' : a).trim();
+  let body;
+  if (url) {
+    body = '<a class="lnk" href="' + esc(url) + '" target="_blank" rel="noopener">' +
+      esc(text && !/^https?:\/\//i.test(text) ? text : 'Open link') + ' &#8599;</a>';
+  } else if (text) {
+    // turn any web address inside the text into a clickable link
+    body = esc(text).replace(/(https?:\/\/[^\s<]+)/gi,
+      '<a class="lnk" href="$1" target="_blank" rel="noopener">Open link &#8599;</a>');
+  } else {
+    body = '—';
+  }
+  return '<div class="qa-row"><div class="qa-q">' + esc(q) + '</div>' +
+    '<div class="qa-a' + (text || url ? '' : ' blank') + '">' + body + '</div></div>';
+}
+
+/* ---------- workflow ---------- */
+async function openWorkflowIdx(idx){
+  const it = items[idx];
+  $('wfSub').textContent = it.pr + ' · ' + it.item;
+  $('wfBody').innerHTML = '<div class="loader"><div class="spin"></div>Loading…</div>';
+  openModal('wfModal');
+  try{
+    current = await call('apiDetails', session.token, it.ref);
+    renderWorkflow();
+  }catch(e){ $('wfBody').innerHTML = '<div class="empty">' + esc(e.message) + '</div>'; }
+}
+
+function openWorkflow(d){
+  if (!d) return;
+  $('wfSub').textContent = d.pr + ' · ' + d.item;
+  openModal('wfModal');
+  renderWorkflow();
+}
+
+function renderWorkflow(){
+  const w = current.workflow, has = current.has || {};
+  const bh = current.bhimsen;
+  wfOriginal = { checked: w.checked, status: w.status || '', remark: w.remark || '',
+    revised: w.revisedIso || '',
+    qtySent: String(w.qtySent || ''), revisedQty: String(w.revisedQty || ''),
+    qtyPrepared: String(w.qtyPrepared || ''),
+    bhimChecked: bh ? !!bh.checked : false, bhimRemark: bh ? (bh.remark || '') : '',
+    tentative: String(w.tentative || ''), finalCost: String(w.finalCost || '') };
+  wfStatus = wfOriginal.status;
+
+  let h = '';
+
+  const editable = current.canEdit && !current.cancelled;
+  $('wfSave').classList.toggle('hidden', !editable && !bh);
+  $('wfWa').classList.add('hidden');
+
+  // Bhimsen + view-only users: production workflow is read-only
+  if (bh || !editable) {
+    const ro = [];
+    if (has.check) ro.push(['Production Check', w.checked ? '✓ Checked' : 'Not checked']);
+    if (has.status) ro.push(['Production Status', w.status]);
+    if (has.remark) ro.push(['Remark', w.remark]);
+    if (has.revised) ro.push(['Revised Dispatch Date', w.revisedText]);
+    if (has.qtySent) ro.push(['Qty Sent For Production', w.qtySent]);
+    if (has.revisedQty) ro.push(['Revised Qty', w.revisedQty]);
+    if (has.qtyPrepared) ro.push(['Qty Prepared', w.qtyPrepared]);
+    if (has.tentative) ro.push(['Tentative Cost', w.tentative]);
+    if (has.finalCost) ro.push(['Final Cost', w.finalCost]);
+    if (w.completion) ro.push(['Completion Time', w.completion]);
+    h += '<div class="sec"><div class="sec-h wf-h"><span>PRODUCTION WORKFLOW (view only)</span></div>' +
+      '<div class="qa">' + ro.map(r => qa(r[0], r[1])).join('') + '</div></div>';
+    if (!bh) {
+      h += '<div class="info">' + (current.cancelled ? 'This PR is cancelled.' : 'You have view-only access.') + '</div>';
+      $('wfBody').innerHTML = h;
+      return;
+    }
+    h += '<div class="bh-box"><div class="bh-title">BHIMSEN CHECK</div>' +
+      '<label class="checkline" style="background:#ebe2ff;color:#3f2470"><input type="checkbox" id="wfBhCheck" ' +
+        (bh.checked ? 'checked' : '') + '>Bhimsen Checked</label>' +
+      '<div><label class="flabel" for="wfBhRemark">Bhimsen Remark</label>' +
+      '<textarea id="wfBhRemark" class="field" placeholder="Your remark">' + esc(bh.remark) + '</textarea></div>' +
+      (bh.error ? '<div class="hint" style="color:#b3261e">' + esc(bh.error) + '</div>' : '') +
+      '</div>';
+    $('wfBody').innerHTML = h;
+    return;
+  }
+
+  if (has.check) h += '<label class="checkline"><input type="checkbox" id="wfCheck" ' + (w.checked ? 'checked' : '') + '>' +
+      'Production Accepted / Checked</label>';
+  if (has.status) h += '<div><span class="flabel">Production Status</span><div class="pills">' +
+      STATUSES.map(s => '<button type="button" class="pill' + (s === wfStatus ? ' on' : '') +
+        '" data-v="' + s + '" onclick="pickStatus(this)">' + s + '</button>').join('') +
+    '</div></div>';
+  if (has.remark) h += '<div><label class="flabel" for="wfRemark">Remark</label>' +
+      '<textarea id="wfRemark" class="field" placeholder="Write a remark">' + esc(w.remark) + '</textarea></div>';
+  if (has.revised) h += '<div><label class="flabel" for="wfRevised">Revised Dispatch Date</label>' +
+      '<input id="wfRevised" class="field" type="date" value="' + esc(w.revisedIso) + '">' +
+      '<div class="hint" style="margin-top:4px">Days Pending is recalculated from this date.</div></div>';
+  if (has.qtySent || has.revisedQty) {
+    h += '<div class="two">';
+    if (has.qtySent) h += '<div><label class="flabel" for="wfQty">Qty Sent For Production</label>' +
+        '<input id="wfQty" class="field" type="number" inputmode="numeric" step="1" min="0" value="' + esc(w.qtySent) + '"></div>';
+    if (has.revisedQty) h += '<div><label class="flabel" for="wfRevQty">Revised Qty</label>' +
+        '<input id="wfRevQty" class="field" type="number" inputmode="numeric" step="1" min="0" value="' + esc(w.revisedQty) + '"></div>';
+    h += '</div>';
+  }
+  if (has.qtyPrepared) {
+    h += '<div style="background:#e3f4e8;border:1px solid #b7e1cd;border-radius:12px;padding:12px">' +
+      '<label class="flabel" for="wfPrep">Qty Prepared</label>' +
+      '<input id="wfPrep" class="field" type="number" inputmode="numeric" step="1" min="0" value="' + esc(w.qtyPrepared) + '" ' +
+      'oninput="$(\'wfWa\').classList.toggle(\'hidden\', this.value === \'\')">' +
+      '<div class="hint" style="margin-top:4px">Use <b>WhatsApp CRM &amp; Save</b> to also message the CRM' +
+      (current.crmName ? ' (' + esc(current.crmName) + ')' : '') + '.</div></div>';
+  }
+  if (has.tentative || has.finalCost) {
+    h += '<div class="two">';
+    if (has.tentative) h += '<div><label class="flabel" for="wfTent">Tentative Cost</label>' +
+        '<input id="wfTent" class="field" type="number" inputmode="decimal" step="0.01" value="' + esc(w.tentative) + '"></div>';
+    if (has.finalCost) h += '<div><label class="flabel" for="wfFinal">Final Cost</label>' +
+        '<input id="wfFinal" class="field" type="number" inputmode="decimal" step="0.01" value="' + esc(w.finalCost) + '"></div>';
+    h += '</div>';
+  }
+  if (bh) {
+    h += '<div class="bh-box"><div class="bh-title">BHIMSEN CHECK · only you see this</div>' +
+      '<label class="checkline" style="background:#ebe2ff;color:#3f2470"><input type="checkbox" id="wfBhCheck" ' +
+        (bh.checked ? 'checked' : '') + '>Bhimsen Checked</label>' +
+      '<div><label class="flabel" for="wfBhRemark">Bhimsen Remark</label>' +
+      '<textarea id="wfBhRemark" class="field" placeholder="Your remark">' + esc(bh.remark) + '</textarea></div>' +
+      (bh.error ? '<div class="hint" style="color:#b3261e">' + esc(bh.error) + '</div>' : '') +
+      '</div>';
+  }
+  if (!h) h = '<div class="info">This sheet has no Production Workflow columns.</div>';
+  if (w.completion) h += '<div class="info">Completed on ' + esc(w.completion) + '</div>';
+  h += '<div class="hint"></div>';
+  $('wfBody').innerHTML = h;
+  if (has.qtyPrepared && w.qtyPrepared !== '') $('wfWa').classList.remove('hidden');
+}
+
+function pickStatus(btn){
+  wfStatus = (wfStatus === btn.dataset.v) ? '' : btn.dataset.v;
+  document.querySelectorAll('.pill').forEach(p => p.classList.toggle('on', p.dataset.v === wfStatus));
+}
+
+async function saveWorkflow(withWhatsapp){
+  const ch = {};
+  const val = id => $(id) ? $(id).value : null;
+  if ($('wfCheck') && $('wfCheck').checked !== wfOriginal.checked) ch.checked = $('wfCheck').checked;
+  if (document.querySelector('.pill') && wfStatus !== wfOriginal.status) ch.status = wfStatus;
+  if (val('wfRemark') !== null && val('wfRemark') !== wfOriginal.remark) ch.remark = val('wfRemark');
+  if (val('wfRevised') !== null && val('wfRevised') !== wfOriginal.revised) ch.revised = val('wfRevised');
+  if (val('wfTent') !== null && val('wfTent') !== wfOriginal.tentative) ch.tentative = val('wfTent');
+  if (val('wfQty') !== null && val('wfQty') !== wfOriginal.qtySent) ch.qtySent = val('wfQty');
+  if (val('wfRevQty') !== null && val('wfRevQty') !== wfOriginal.revisedQty) ch.revisedQty = val('wfRevQty');
+  if ($('wfBhCheck') && $('wfBhCheck').checked !== wfOriginal.bhimChecked) ch.bhimChecked = $('wfBhCheck').checked;
+  if (val('wfBhRemark') !== null && val('wfBhRemark') !== wfOriginal.bhimRemark) ch.bhimRemark = val('wfBhRemark');
+  if (val('wfFinal') !== null && val('wfFinal') !== wfOriginal.finalCost) ch.finalCost = val('wfFinal');
+  if (val('wfPrep') !== null && val('wfPrep') !== wfOriginal.qtyPrepared) ch.qtyPrepared = val('wfPrep');
+
+  if (withWhatsapp) {
+    const q = val('wfPrep');
+    if (!q) { toast('Enter Qty Prepared first.', true); return; }
+    const msg = 'Hello ' + (current.crmName || '') + ',\n' + current.person + ' has prepared ' + q +
+      ' qty of ' + current.item + ' for PR ' + current.pr + '.';
+    const phone = String(current.crmPhone || '').replace(/\D/g, '');
+    // opened right away (phones block pop-ups opened after waiting)
+    window.open('https://wa.me/' + phone + '?text=' + encodeURIComponent(msg), '_blank');
+    if (!Object.keys(ch).length) { toast('WhatsApp opened. Nothing new to save.'); return; }
+  }
+
+  if (!Object.keys(ch).length){ toast('No changes to save.'); return; }
+  if (ch.checked === false && !confirm('Uncheck this PR? A correction email will be sent.')) return;
+
+  const b = $('wfSave'); b.disabled = true; b.textContent = 'Saving…';
+  try{
+    current = await call('apiSave', session.token, current.ref, ch);
+    const it = items.find(x => x.ref.sid === current.ref.sid && x.ref.child === current.ref.child && x.ref.u === current.ref.u);
+    if (it){
+      Object.assign(it, { checked: current.workflow.checked, status: current.workflow.status,
+        remark: current.workflow.remark, days: current.days,
+        revised: current.workflow.revisedText });
+    }
+    render();
+    if (!$('dtModal').classList.contains('hidden')) renderDetails();
+    closeModal('wfModal');
+    toast('✓ ' + current.message);
+  }catch(e){ toast(e.message, true); }
+  b.disabled = false; b.textContent = 'Save Update';
+}
+
+/* ---------- modal helpers ---------- */
+function openModal(id){ $(id).classList.remove('hidden'); document.body.style.overflow = 'hidden'; }
+function closeModal(id){
+  $(id).classList.add('hidden');
+  if ($('dtModal').classList.contains('hidden') && $('wfModal').classList.contains('hidden')) document.body.style.overflow = '';
+}
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (!$('wfModal').classList.contains('hidden')) closeModal('wfModal');
+  else closeModal('dtModal');
+});
+
+start();
 </script>
 </body>
 </html>
