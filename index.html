@@ -146,10 +146,25 @@ button{cursor:pointer}
 .flabel{font-size:14px;font-weight:700;color:#3b4560;margin-bottom:6px;display:block}
 .pills{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .pill{height:48px;border-radius:10px;border:2px solid transparent;font-size:15px;font-weight:700}
-.pill[data-v="Not Started"]{background:var(--gray-bg);color:#3b4560}
-.pill[data-v="In Progress"]{background:var(--blue-bg);color:var(--blue)}
-.pill[data-v="On Hold"]{background:var(--orange-bg);color:var(--orange)}
-.pill[data-v="Complete"]{background:var(--green-bg);color:var(--green)}
+.pill,.st{background:#fff4c2;color:#6b5200}                                  /* in-between = yellow */
+.pill[data-v="On Hold"],.st[data-v="On Hold"]{background:#fde2e0;color:#a3231a}        /* red (light) */
+.pill[data-v="Rework Required"],.st[data-v="Rework Required"]{background:#f9c9c4;color:#8a1810}
+.pill[data-v="Pending Clarification"],.st[data-v="Pending Clarification"]{background:#eef0f4;color:#3b4560} /* neutral */
+.pill[data-v="Complete"],.st[data-v="Complete"]{background:#d6f2de;color:#1e7d3a}       /* green */
+.st[data-v="Cancelled"]{background:#5c0a0a;color:#fff}
+.st{display:inline-block;padding:3px 10px;border-radius:999px;font-weight:700}
+.card.s-cancelled{background:#3d0606;border-left-color:#1a0000;color:#f3d6d6}
+.card.s-cancelled .pr,.card.s-cancelled .item,.card.s-cancelled .facts div{text-decoration:line-through;color:#f3d6d6}
+.card.s-cancelled .facts span{color:#d9a5a5}
+.card.s-cancelled .wf{background:rgba(255,255,255,.08);border-color:#7a2a2a}
+.att{display:inline-block;margin-top:2px;color:var(--blue);font-weight:700;text-decoration:none}
+.card.s-cancelled .att{color:#ffb3b3}
+.dates{display:flex;gap:6px;align-items:center;flex-wrap:wrap;color:#fff;font-size:13px;font-weight:600}
+.dates input{height:40px;border:0;border-radius:8px;padding:0 8px;color:var(--text)}
+.dates button{height:40px;border:0;border-radius:8px;padding:0 10px;background:rgba(255,255,255,.14);color:#fff}
+.newpr{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:45;background:#1e7d3a;color:#fff;
+  padding:12px 18px;border-radius:12px;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.3);cursor:pointer}
+.btn.wa{background:#25d366;border-color:#25d366;color:#fff}
 .pill.on{border-color:var(--navy);box-shadow:0 2px 6px rgba(0,0,0,.18)}
 .field{width:100%;border:1px solid #c6cedd;border-radius:10px;padding:12px;font-size:16px;background:#fff}
 textarea.field{min-height:96px;resize:vertical}
@@ -211,9 +226,14 @@ textarea.field{min-height:96px;resize:vertical}
         </button>
       </div>
       <div class="tools">
-        <input id="search" class="search" type="search" placeholder="Search PR, item, SKU, company" oninput="render()" aria-label="Search">
+        <input id="search" class="search" type="search" placeholder="Search PR, item, SKU, brand" oninput="render()" aria-label="Search">
         <select id="person" class="select hidden" onchange="loadList()" aria-label="Production person"></select>
         <button class="icon-btn" onclick="loadList()" aria-label="Refresh" title="Refresh">&#x21bb;</button>
+      </div>
+      <div class="dates">Added date
+        <input type="date" id="dFrom" onchange="render()" aria-label="Added from"> to
+        <input type="date" id="dTo" onchange="render()" aria-label="Added to">
+        <button onclick="$('dFrom').value='';$('dTo').value='';render()">Clear</button>
       </div>
     </div>
   </header>
@@ -253,12 +273,14 @@ textarea.field{min-height:96px;resize:vertical}
     <div class="m-body"><div class="form" id="wfBody"></div></div>
     <div class="m-foot">
       <button class="btn" onclick="closeModal('wfModal')">Cancel</button>
+      <button class="btn wa hidden" id="wfWa" onclick="saveWorkflow(true)">WhatsApp CRM &amp; Save</button>
       <button class="btn primary" id="wfSave" onclick="saveWorkflow()">Save Update</button>
     </div>
   </div>
 </div>
 
 <div id="toast" class="toast hidden"></div>
+<div id="newPr" class="newpr hidden" onclick="this.classList.add('hidden')"></div>
 
 <script>
 const STATUSES = ['On Hold','Pending Clarification','Pre Production Sample Made', 'Production in Progress',
@@ -270,7 +292,7 @@ const esc = s => String(s == null ? '' : s)
   .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
 /* ====================== EDIT THESE TWO LINES ====================== */
-const API_URL   = 'https://script.google.com/macros/s/AKfycbzOMr6DBPuQ_-AxRZ76c430IiwACeVxU0yiAq2KP77fjlenglmF17DaM7G-W30biJ-0/exec';
+const API_URL   = 'https://script.google.com/macros/s/AKfycbxlgQO2ElkM8nbM-KItIoSCRjKEU0VLwJ_tX-xiRekTZHs6zTsRn8TwwQngJSI3M2Y/exec';
 const CLIENT_ID = '407495392214-3r5jrslcv3hh1l6002pa98s7c5cl8p2h.apps.googleusercontent.com';
 /* ================================================================== */
 
@@ -390,16 +412,46 @@ async function loadList(){
     items = r.items;
     $('meta').dataset.updated = r.updated;
     render();
+    checkNewPrs();
     if (r.warnings && r.warnings.length) toast('⚠ ' + r.warnings.join(' | '), true);
   }catch(e){
     $('list').innerHTML = '<div class="empty">Could not load PRs.<br>' + esc(e.message) + '</div>';
   }
 }
 
+/* ---------- "new PR added" popup ---------- */
+const keyOf = it => it.ref.u + '|' + it.ref.sid + '|' + it.ref.child;
+function checkNewPrs(){
+  const store = 'pwSeen_' + session.name;
+  let seen = null;
+  try { seen = JSON.parse(localStorage.getItem(store) || 'null'); } catch(e){}
+  const now = items.map(keyOf);
+  if (seen && ($('person').value || 'ALL') === 'ALL') {
+    const old = new Set(seen);
+    const added = items.filter(it => !old.has(keyOf(it)));
+    if (added.length) {
+      const b = $('newPr');
+      b.textContent = '🆕 ' + added.length + ' new PR' + (added.length > 1 ? 's' : '') + ' added: ' +
+        added.slice(0, 3).map(x => x.pr).join(', ') + (added.length > 3 ? '…' : '');
+      b.classList.remove('hidden');
+      clearTimeout(b._h); b._h = setTimeout(() => b.classList.add('hidden'), 10000);
+    }
+  }
+  if (($('person').value || 'ALL') === 'ALL') {
+    try { localStorage.setItem(store, JSON.stringify(now)); } catch(e){}
+  }
+}
+// check for new PRs every 5 minutes while the page is open
+setInterval(() => {
+  if (session && document.visibilityState === 'visible' &&
+      $('dtModal').classList.contains('hidden') && $('wfModal').classList.contains('hidden')) loadList();
+}, 5 * 60 * 1000);
+
 function daysNum(d){ const n = Number(d); return d !== '' && !isNaN(n) ? n : null; }
 function isComplete(it){ return String(it.days).toLowerCase() === 'complete' || it.status === 'Complete'; }
 
 function cardClass(it){
+  if (it.cancelled) return 's-cancelled';
   if (isComplete(it)) return 's-complete';
   const n = daysNum(it.days);
   if (n !== null && n < 0) return 's-overdue';
@@ -425,7 +477,8 @@ const FILTERS = [
   ['OVERDUE','Overdue', it => !isComplete(it) && daysNum(it.days) !== null && daysNum(it.days) < 0],
   ['PROGRESS','In progress', it => it.status === 'Production in Progress'],
   ['HOLD','On hold', it => it.status === 'On Hold'],
-  ['DONE','Complete', it => isComplete(it)]
+  ['DONE','Complete', it => isComplete(it)],
+  ['CANCELLED','Cancelled', it => it.cancelled]
 ];
 
 
@@ -434,7 +487,13 @@ function setFilter(f){ filter = f; render(); }
 function render(){
   const q = $('search').value.trim().toLowerCase();
   const searched = items.filter(it => !q ||
-    [it.pr, it.item, it.sku, it.category, it.company, it.person].join(' ').toLowerCase().includes(q));
+    [it.pr, it.item, it.sku, it.category, it.company, it.brand, it.person].join(' ').toLowerCase().includes(q))
+    .filter(it => {
+      const f = $('dFrom').value, t = $('dTo').value;
+      if (!f && !t) return true;
+      if (!it.added) return false;
+      return (!f || it.added >= f) && (!t || it.added <= t);
+    });
 
   $('chips').innerHTML = FILTERS.map(([k, label, fn]) =>
     '<button class="chip' + (filter === k ? ' on' : '') + '" onclick="setFilter(\'' + k + '\')">' +
@@ -451,21 +510,25 @@ function render(){
     const idx = items.indexOf(it);
     return '<article class="card ' + cardClass(it) + '">' +
       '<div class="card-head"><div><div class="pr">' + esc(it.pr) + '</div>' +
-      '<div class="item">' + esc(it.item) + '</div></div>' + daysBadge(it.days) + '</div>' +
+      '<div class="item">' + esc(it.item) + '</div></div>' +
+      (it.cancelled ? '<span class="badge" style="background:#1a0000;color:#fff">CANCELLED</span>' : daysBadge(it.days)) + '</div>' +
       '<div class="facts">' +
         fact('Category', it.category) + fact('SKU', it.sku) +
+        fact('Qty', it.qty) + fact('Brand', it.brand) +
         fact('Expected dispatch', it.expected) + fact('Revised dispatch', it.revised) +
         (session.role === 'admin' ? fact('Production person', it.person) : '') +
-        fact('Company', it.company) +
+        fact('Added', it.added ? it.added.split('-').reverse().join('/') : '') +
       '</div>' +
+      (it.attachment ? '<a class="att" href="' + esc(it.attachment) + '" target="_blank" rel="noopener">📎 Open attachment &#8599;</a>' : '') +
       '<div class="wf"><div class="wf-title">PRODUCTION WORKFLOW</div>' +
         '<div class="wf-line"><span>' + (it.checked ? '&#10003; Checked' : '&#9675; Not checked') + '</span>' +
-        '<span>' + esc(it.status || 'No status') + '</span></div>' +
+        '<span class="st" data-v="' + esc(it.cancelled ? 'Cancelled' : it.status) + '">' + esc(it.cancelled ? 'Cancelled' : (it.status || 'No status')) + '</span></div>' +
         (it.remark ? '<div class="wf-remark">' + esc(it.remark) + '</div>' : '') +
       '</div>' +
       '<div class="actions">' +
         '<button class="btn" onclick="openDetails(' + idx + ')">Details</button>' +
-        '<button class="btn gold" onclick="openWorkflowIdx(' + idx + ')">Workflow</button>' +
+        (it.cancelled ? '<button class="btn" disabled style="opacity:.5">Cancelled</button>'
+          : '<button class="btn gold" onclick="openWorkflowIdx(' + idx + ')">Workflow</button>') +
       '</div></article>';
   }).join('') + '</div>';
 }
@@ -500,6 +563,7 @@ function renderDetails(){
     (w.completion ? qa('Completion Time', w.completion) : '') +
     (d.has.qtySent ? qa('Qty Sent For Production', w.qtySent) : '') +
     (d.has.revisedQty ? qa('Revised Qty', w.revisedQty) : '') +
+    (d.has.qtyPrepared ? qa('Qty Prepared', w.qtyPrepared) : '') +
     (d.has.tentative ? qa('Tentative Cost', w.tentative) : '') +
     (d.has.finalCost ? qa('Final Cost', w.finalCost) : '') +
     '</div></div>';
@@ -577,14 +641,19 @@ function renderWorkflow(){
   wfOriginal = { checked: w.checked, status: w.status || '', remark: w.remark || '',
     revised: w.revisedIso || '',
     qtySent: String(w.qtySent || ''), revisedQty: String(w.revisedQty || ''),
+    qtyPrepared: String(w.qtyPrepared || ''),
     bhimChecked: bh ? !!bh.checked : false, bhimRemark: bh ? (bh.remark || '') : '',
     tentative: String(w.tentative || ''), finalCost: String(w.finalCost || '') };
   wfStatus = wfOriginal.status;
 
   let h = '';
 
-  // Bhimsen: production workflow is read-only, only his own check is editable
-  if (bh) {
+  const editable = current.canEdit && !current.cancelled;
+  $('wfSave').classList.toggle('hidden', !editable && !bh);
+  $('wfWa').classList.add('hidden');
+
+  // Bhimsen + view-only users: production workflow is read-only
+  if (bh || !editable) {
     const ro = [];
     if (has.check) ro.push(['Production Check', w.checked ? '✓ Checked' : 'Not checked']);
     if (has.status) ro.push(['Production Status', w.status]);
@@ -592,11 +661,17 @@ function renderWorkflow(){
     if (has.revised) ro.push(['Revised Dispatch Date', w.revisedText]);
     if (has.qtySent) ro.push(['Qty Sent For Production', w.qtySent]);
     if (has.revisedQty) ro.push(['Revised Qty', w.revisedQty]);
+    if (has.qtyPrepared) ro.push(['Qty Prepared', w.qtyPrepared]);
     if (has.tentative) ro.push(['Tentative Cost', w.tentative]);
     if (has.finalCost) ro.push(['Final Cost', w.finalCost]);
     if (w.completion) ro.push(['Completion Time', w.completion]);
     h += '<div class="sec"><div class="sec-h wf-h"><span>PRODUCTION WORKFLOW (view only)</span></div>' +
       '<div class="qa">' + ro.map(r => qa(r[0], r[1])).join('') + '</div></div>';
+    if (!bh) {
+      h += '<div class="info">' + (current.cancelled ? 'This PR is cancelled.' : 'You have view-only access.') + '</div>';
+      $('wfBody').innerHTML = h;
+      return;
+    }
     h += '<div class="bh-box"><div class="bh-title">BHIMSEN CHECK</div>' +
       '<label class="checkline" style="background:#ebe2ff;color:#3f2470"><input type="checkbox" id="wfBhCheck" ' +
         (bh.checked ? 'checked' : '') + '>Bhimsen Checked</label>' +
@@ -627,6 +702,14 @@ function renderWorkflow(){
         '<input id="wfRevQty" class="field" type="number" inputmode="numeric" step="1" min="0" value="' + esc(w.revisedQty) + '"></div>';
     h += '</div>';
   }
+  if (has.qtyPrepared) {
+    h += '<div style="background:#e3f4e8;border:1px solid #b7e1cd;border-radius:12px;padding:12px">' +
+      '<label class="flabel" for="wfPrep">Qty Prepared</label>' +
+      '<input id="wfPrep" class="field" type="number" inputmode="numeric" step="1" min="0" value="' + esc(w.qtyPrepared) + '" ' +
+      'oninput="$(\'wfWa\').classList.toggle(\'hidden\', this.value === \'\')">' +
+      '<div class="hint" style="margin-top:4px">Use <b>WhatsApp CRM &amp; Save</b> to also message the CRM' +
+      (current.crmName ? ' (' + esc(current.crmName) + ')' : '') + '.</div></div>';
+  }
   if (has.tentative || has.finalCost) {
     h += '<div class="two">';
     if (has.tentative) h += '<div><label class="flabel" for="wfTent">Tentative Cost</label>' +
@@ -648,6 +731,7 @@ function renderWorkflow(){
   if (w.completion) h += '<div class="info">Completed on ' + esc(w.completion) + '</div>';
   h += '<div class="hint"></div>';
   $('wfBody').innerHTML = h;
+  if (has.qtyPrepared && w.qtyPrepared !== '') $('wfWa').classList.remove('hidden');
 }
 
 function pickStatus(btn){
@@ -655,7 +739,7 @@ function pickStatus(btn){
   document.querySelectorAll('.pill').forEach(p => p.classList.toggle('on', p.dataset.v === wfStatus));
 }
 
-async function saveWorkflow(){
+async function saveWorkflow(withWhatsapp){
   const ch = {};
   const val = id => $(id) ? $(id).value : null;
   if ($('wfCheck') && $('wfCheck').checked !== wfOriginal.checked) ch.checked = $('wfCheck').checked;
@@ -668,6 +752,18 @@ async function saveWorkflow(){
   if ($('wfBhCheck') && $('wfBhCheck').checked !== wfOriginal.bhimChecked) ch.bhimChecked = $('wfBhCheck').checked;
   if (val('wfBhRemark') !== null && val('wfBhRemark') !== wfOriginal.bhimRemark) ch.bhimRemark = val('wfBhRemark');
   if (val('wfFinal') !== null && val('wfFinal') !== wfOriginal.finalCost) ch.finalCost = val('wfFinal');
+  if (val('wfPrep') !== null && val('wfPrep') !== wfOriginal.qtyPrepared) ch.qtyPrepared = val('wfPrep');
+
+  if (withWhatsapp) {
+    const q = val('wfPrep');
+    if (!q) { toast('Enter Qty Prepared first.', true); return; }
+    const msg = 'Hello ' + (current.crmName || '') + ',\n' + current.person + ' has prepared ' + q +
+      ' qty of ' + current.item + ' for PR ' + current.pr + '.';
+    const phone = String(current.crmPhone || '').replace(/\D/g, '');
+    // opened right away (phones block pop-ups opened after waiting)
+    window.open('https://wa.me/' + phone + '?text=' + encodeURIComponent(msg), '_blank');
+    if (!Object.keys(ch).length) { toast('WhatsApp opened. Nothing new to save.'); return; }
+  }
 
   if (!Object.keys(ch).length){ toast('No changes to save.'); return; }
   if (ch.checked === false && !confirm('Uncheck this PR? A correction email will be sent.')) return;
