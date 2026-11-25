@@ -223,6 +223,8 @@ textarea.field{min-height:96px;resize:vertical}
 .dsel-foot{display:flex;gap:8px;margin-top:10px}
 .dsel-foot button{flex:1;height:38px;border-radius:8px;border:1px solid var(--line);background:#fff;font-weight:700}
 .dsel-foot button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.dsel-quick button,.dsel-foot button{color:#1c2333 !important}
+.dsel-foot button.on{color:#fff !important}
 </style>
 </head>
 <body>
@@ -656,7 +658,7 @@ function renderDetails(){
     (w.completion ? qa('Completion Time', w.completion) : '') +
     (d.has.qtySent ? qa('Qty Sent For Production', w.qtySent) : '') +
     (d.has.revisedQty ? qa('Revised Qty', w.revisedQty) : '') +
-    (d.has.qtyPrepared ? qa('Qty of Production Completed', w.qtyPrepared) : '') +
+    (d.has.qtyPrepared ? qa('Qty of Production Completed', w.qtyPrepared + (w.qtyWaSent ? '  ✓ WhatsApp send' : '')) : '') +
     (d.has.tentative ? qa('Tentative Cost', w.tentative) : '') +
     (d.has.finalCost ? qa('Final Cost', w.finalCost) : '') +
     '</div></div>';
@@ -850,12 +852,8 @@ async function saveWorkflow(withWhatsapp){
   if (withWhatsapp) {
     const q = val('wfPrep');
     if (!q) { toast('Enter Qty of Production Completed first.', true); return; }
-    const msg = 'Hello ' + (current.crmName || '') + ',\n' + current.person + ' has completed production of ' + q +
-      ' qty of ' + current.item + ' for PR ' + current.pr + '.';
-    const phone = String(current.crmPhone || '').replace(/\D/g, '');
-    // opened right away (phones block pop-ups opened after waiting)
-    window.open('https://wa.me/' + phone + '?text=' + encodeURIComponent(msg), '_blank');
-    if (!Object.keys(ch).length) { toast('WhatsApp opened. Nothing new to save.'); return; }
+    ch.qtyPrepared = q;      // always saved
+    ch.waSent = true;        // sheet gets "500 | WhatsApp send" (WhatsApp is NOT opened)
   }
 
   if (!Object.keys(ch).length){ toast('No changes to save.'); return; }
