@@ -803,7 +803,8 @@ function renderWorkflow(){
       '<input id="wfPrep" class="field" type="number" inputmode="numeric" step="1" min="0" value="' + esc(w.qtyPrepared) + '" ' +
       'oninput="$(\'wfWa\').classList.toggle(\'hidden\', this.value === \'\')">' +
       '<div class="hint" style="margin-top:4px">Use <b>WhatsApp CRM &amp; Save</b> to also message the CRM' +
-      (current.crmName ? ' (' + esc(current.crmName) + ')' : '') + '.</div></div>';
+      ((current.crmName || current.salesName) ? ' (CRM: ' + esc(current.crmName || '—') +
+        ' · Sales: ' + esc(current.salesName || '—') + ')' : '') + '.</div></div>';
   }
   if (has.tentative || has.finalCost) {
     h += '<div class="two">';
@@ -852,8 +853,14 @@ async function saveWorkflow(withWhatsapp){
   if (withWhatsapp) {
     const q = val('wfPrep');
     if (!q) { toast('Enter Qty of Production Completed first.', true); return; }
+    const who = [current.crmName, current.salesName].filter(Boolean).join(' & ');
+    const msg = 'Hello ' + who + ',\n' + current.person + ' has completed production of ' + q +
+      ' qty of ' + current.item + ' for PR ' + current.pr + '.';
+    const phone = String(current.crmPhone || '').replace(/\D/g, '');
+    // opened right away (phones block pop-ups opened after waiting)
+    window.open('https://wa.me/' + phone + '?text=' + encodeURIComponent(msg), '_blank');
     ch.qtyPrepared = q;      // always saved
-    ch.waSent = true;        // sheet gets "500 | WhatsApp send" (WhatsApp is NOT opened)
+    ch.waSent = true;        // sheet gets "500 | WhatsApp send"
   }
 
   if (!Object.keys(ch).length){ toast('No changes to save.'); return; }
