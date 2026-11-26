@@ -253,7 +253,7 @@ textarea.field{min-height:96px;resize:vertical}
       <div class="tools">
         <input id="search" class="search" type="search" placeholder="Search PR, item, SKU, brand" oninput="render()" aria-label="Search">
         <select id="person" class="select hidden" onchange="loadList()" aria-label="Production person"></select>
-        <button class="icon-btn" onclick="loadList()" aria-label="Refresh" title="Refresh">&#x21bb;</button>
+        <button class="icon-btn" onclick="loadList(true)" aria-label="Refresh" title="Refresh (fresh from sheets)">&#x21bb;</button>
       </div>
       <div class="dates">
   <div class="dsel">
@@ -427,6 +427,7 @@ async function onGoogleCredential(resp){
 
 function logout(){
   if (!confirm('Log out from this device?')) return;
+  try { Object.keys(localStorage).filter(k => k.indexOf('pwList_') === 0).forEach(k => localStorage.removeItem(k)); } catch(e){}
   saveCode(''); session = null; items = [];
   try { google.accounts.id.disableAutoSelect(); } catch(e){}
   $('noAccessMsg').textContent = '';
@@ -449,17 +450,29 @@ function showApp(){
 }
 
 /* ---------- list ---------- */
-async function loadList(){
-  $('list').innerHTML = '<div class="loader"><div class="spin"></div>Loading your PRs…</div>';
+/* Shows the last list on this device instantly, then updates from the server */
+const listKey = () => 'pwList_' + session.name + '_' + ($('person').value || 'ALL');
+async function loadList(fresh){
+  let shown = false;
+  try {
+    const old = JSON.parse(localStorage.getItem(listKey()) || 'null');
+    if (old && old.items) {
+      items = old.items; $('meta').dataset.updated = (old.updated || '') + ' · updating…';
+      render(); shown = true;
+    }
+  } catch(e){}
+  if (!shown) $('list').innerHTML = '<div class="loader"><div class="spin"></div>Loading your PRs…</div>';
   try{
-    const r = await call('apiList', session.token, $('person').value || 'ALL');
+    const r = await call('apiList', session.token, $('person').value || 'ALL', fresh === true);
     items = r.items;
     $('meta').dataset.updated = r.updated;
     render();
     checkNewPrs();
+    try { localStorage.setItem(listKey(), JSON.stringify({ items: r.items, updated: r.updated })); } catch(e){}
     if (r.warnings && r.warnings.length) toast('⚠ ' + r.warnings.join(' | '), true);
   }catch(e){
-    $('list').innerHTML = '<div class="empty">Could not load PRs.<br>' + esc(e.message) + '</div>';
+    if (shown) toast('Could not update: ' + e.message, true);
+    else $('list').innerHTML = '<div class="empty">Could not load PRs.<br>' + esc(e.message) + '</div>';
   }
 }
 
