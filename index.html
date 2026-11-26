@@ -866,7 +866,7 @@ async function saveWorkflow(withWhatsapp){
   if (withWhatsapp) {
     const q = val('wfPrep');
     if (!q) { toast('Enter Qty of Production Completed first.', true); return; }
-    const who = [current.crmName, current.salesName].filter(Boolean).join(' & ');
+    const who = current.crmName || '';
     const msg = 'Hello ' + who + ',\n' + current.person + ' has completed production of ' + q +
       ' qty of ' + current.item + ' for PR ' + current.pr + '.';
     const phone = String(current.crmPhone || '').replace(/\D/g, '');
